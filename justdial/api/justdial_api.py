@@ -84,6 +84,7 @@ def create_or_update_address(lead_name, address_data, lead_title):
         
         if existing_address:
             address = frappe.get_doc("Address", existing_address[0][0])
+            frappe.log_error("Updating existing address", address.name)
         else:
             address = frappe.new_doc("Address")
             
