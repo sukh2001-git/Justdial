@@ -18,8 +18,6 @@ def capture_lead(**kwargs):
         else:
             data = frappe.form_dict
         
-        frappe.log_error("Received justdial data", data)
-        
         mobile = data.get("mobile", "")
         phone = data.get("phone", "")
         
@@ -35,7 +33,6 @@ def capture_lead(**kwargs):
         if existing_lead:
             # Updating existing lead
             lead = frappe.get_doc("Lead", existing_lead)
-            frappe.log_error("Found existing lead", lead.name)
         else:
             # Create new lead
             lead = frappe.new_doc("Lead")
@@ -47,22 +44,26 @@ def capture_lead(**kwargs):
         lead.phone = phone
         lead.email_id = data.get("email", "")
         lead.source = "Justdial"
-        lead.city = data.get("city", "")
         lead.type_of_lead = data.get("leadtype", "")
         lead.category = data.get("category", "")
-        lead.area = data.get("area", "")
-        lead.branch_area = data.get("brancharea", "")
-        lead.pincode = data.get("pincode", "")
-        lead.branch_pin = data.get("branchpin", "")
         lead.date = data.get("date", "")
         lead.time = data.get("time", "")
         
         if existing_lead:
             lead.save(ignore_permissions=True)
-            frappe.log_error("Lead updated successfully", lead.as_dict())
         else:
             lead.insert(ignore_permissions=True)
-            frappe.log_error("New lead created successfully", lead.as_dict())
+
+        address_data = {
+            "city": data.get("city", ""),
+            "area": data.get("area", ""),
+            "branch_area": data.get("brancharea", ""),
+            "pincode": data.get("pincode", ""),
+            "branch_pin": data.get("branchpin", "")
+        }
+        
+        if any(address_data.values()):
+            create_or_update_address(lead.name, address_data, lead.lead_name)
             
         frappe.db.commit()
         
@@ -72,3 +73,39 @@ def capture_lead(**kwargs):
         frappe.log_error("Error processing lead", str(e))
         frappe.db.rollback()
         return "ERROR"
+
+def create_or_update_address(lead_name, address_data, lead_title):
+    try:
+        existing_address = frappe.db.sql(
+            """SELECT parent FROM `tabDynamic Link` 
+               WHERE link_doctype = 'Lead' AND link_name = %s AND parenttype = 'Address'""",
+            lead_name
+        )
+        
+        if existing_address:
+            address = frappe.get_doc("Address", existing_address[0][0])
+        else:
+            address = frappe.new_doc("Address")
+            
+        address.address_title = f"{lead_title}" if lead_title else f"Lead {lead_name}"
+        address.city = address_data.get("city", "")
+        address.pincode = address_data.get("pincode", "")
+        address.address_line1 = address_data.get("area", "")
+        address.address_line2 = address_data.get("branch_area", "")
+        address.address_type = "Other"
+        
+        if not existing_address:
+            address.append("links", {
+                "link_doctype": "Lead",
+                "link_name": lead_name,
+                "link_title": lead_title
+            })
+        
+        if existing_address:
+            address.save(ignore_permissions=True)
+        else:
+            address.insert(ignore_permissions=True)
+            
+    except Exception as e:
+        frappe.log_error("Error creating/updating address", str(e))
+        raise e
