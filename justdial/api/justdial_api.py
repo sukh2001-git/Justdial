@@ -2,6 +2,18 @@ import frappe
 import json
 from frappe import _
 
+def create_justdial_lead_source():
+    if not frappe.db.exists("Lead Source","Justdial"):
+        doc = frappe.get_doc({
+            "doctype": "Lead Source",
+            "source_name": "Justdial"
+        })
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        print("Lead Source Added For Justdial")
+    else:
+        print("Justdial Lead Source Already Available")
+
 @frappe.whitelist()
 def capture_lead(**kwargs):
     """
