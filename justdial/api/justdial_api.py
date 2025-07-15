@@ -77,14 +77,27 @@ def capture_lead(**kwargs):
             lead.insert(ignore_permissions=True)
 
         address_data = {
-            "city": data.get("city", ""),
             "area": data.get("area", ""),
             "branch_area": data.get("brancharea", ""),
             "pincode": data.get("pincode", ""),
-            "branch_pin": data.get("branchpin", ""),
-            "state": lead.state if hasattr(lead, 'state') and lead.state else ""
+            "branch_pin": data.get("branchpin", "")
         }
-        
+
+        address_meta = frappe.get_meta("Address")
+        has_custom_location = address_meta.has_field("custom_location")
+        has_custom_states = address_meta.has_field("custom_states")
+
+        if has_custom_location:
+            address_data["custom_location"] = data.get("city", "")
+        else:
+            address_data["city"] = data.get("city", "")
+            
+        # Add state field based on availability
+        if has_custom_states:
+            address_data["custom_states"] = lead.state if hasattr(lead, 'state') and lead.state else ""
+        else:
+            address_data["state"] = lead.state if hasattr(lead, 'state') and lead.state else ""
+
         if any(address_data.values()):
             create_or_update_address(lead.name, address_data, lead.lead_name)
             
