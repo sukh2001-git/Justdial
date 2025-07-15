@@ -60,6 +60,16 @@ def capture_lead(**kwargs):
         lead.category = data.get("category", "")
         lead.date = data.get("date", "")
         lead.time = data.get("time", "")
+        lead.parent_id = data.get("parent_id", "")
+
+        city_name = data.get("city", "")
+
+        if city_name:
+            lead.city = city_name
+            # Try to get state from City doctype
+            city_doc = frappe.db.get_value("City", {"title": city_name}, "state")
+            if city_doc:
+                lead.state = city_doc
         
         if existing_lead:
             lead.save(ignore_permissions=True)
@@ -72,6 +82,7 @@ def capture_lead(**kwargs):
             "branch_area": data.get("brancharea", ""),
             "pincode": data.get("pincode", ""),
             "branch_pin": data.get("branchpin", "")
+            "state": lead.state if hasattr(lead, 'state') and lead.state else ""
         }
         
         if any(address_data.values()):
