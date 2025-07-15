@@ -81,7 +81,7 @@ def capture_lead(**kwargs):
             "area": data.get("area", ""),
             "branch_area": data.get("brancharea", ""),
             "pincode": data.get("pincode", ""),
-            "branch_pin": data.get("branchpin", "")
+            "branch_pin": data.get("branchpin", ""),
             "state": lead.state if hasattr(lead, 'state') and lead.state else ""
         }
         
