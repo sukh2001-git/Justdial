@@ -33,7 +33,6 @@ def capture_lead(**kwargs):
         mobile = data.get("mobile", "")
         phone = data.get("phone", "")
         
-        # Check if lead with this phone number already exists
         existing_lead = None
         
         if mobile:
@@ -43,13 +42,10 @@ def capture_lead(**kwargs):
             existing_lead = frappe.db.get_value("Lead", {"phone": phone}, "name")
         
         if existing_lead:
-            # Updating existing lead
             lead = frappe.get_doc("Lead", existing_lead)
         else:
-            # Create new lead
             lead = frappe.new_doc("Lead")
             
-        # Update lead fields
         lead.lead_name = data.get("name", "")
         lead.company_name = data.get("company", "")
         lead.mobile_no = mobile
@@ -66,10 +62,19 @@ def capture_lead(**kwargs):
 
         if city_name:
             lead.city = city_name
-            # Try to get state from City doctype
             city_doc = frappe.db.get_value("City", {"title": city_name}, "state")
             if city_doc:
                 lead.state = city_doc
+
+        if lead.source == "Justdial":
+            lead_meta = frappe.get_meta("Lead")
+            has_custom_lead_type = lead_meta.has_field("custom_justdial_lead_type")
+            
+            if has_custom_lead_type:
+                if lead.category and "services" in lead.category.lower():
+                    lead.custom_justdial_lead_type = "Prototype"
+                else:
+                    lead.custom_justdial_lead_type = "Sales"
         
         if existing_lead:
             lead.save(ignore_permissions=True)
